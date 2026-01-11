@@ -583,17 +583,21 @@ CyFxUSBUARTAppInit (
 void
 USBUARTAppThread_Entry (
         uint32_t input)
-{   
+{
+#ifdef EN_UART_RCV_BLOCK_EN_DIS   
     uint32_t regValueEn = 0, regValueDs = 0;
+#endif
 
     /* Initialize the USBUART Example Application */
     CyFxUSBUARTAppInit();
 
+#ifdef EN_UART_RCV_BLOCK_EN_DIS   
     /* UART Config Value for Enabling Rx Block */
     regValueEn = UART->lpp_uart_config;
 
     /* UART Config Value for Disabling the Rx Block  */
     regValueDs = UART->lpp_uart_config & (~(CY_U3P_LPP_UART_RTS | CY_U3P_LPP_UART_RX_ENABLE));
+#endif
 
     for (;;)
     {
@@ -605,13 +609,17 @@ USBUARTAppThread_Entry (
             */
             if (glPktsPending == 0)
             {
+#ifdef EN_UART_RCV_BLOCK_EN_DIS   
                 /* Disable UART Receiver Block */
                 UART->lpp_uart_config = regValueDs;
+#endif
 
                 CyU3PDmaChannelSetWrapUp (&glChHandleUarttoUsb);
 
+#ifdef EN_UART_RCV_BLOCK_EN_DIS   
                 /* Enable UART Receiver Block */
                 UART->lpp_uart_config = regValueEn;
+#endif
             }
 
             glPktsPending = 0;
