@@ -69,10 +69,27 @@ CyFxUSBUARTDmaCallback(
         CyU3PDmaCbType_t   type,     /* Callback type.             */
         CyU3PDmaCBInput_t *input)    /* Callback status.           */
 {
-    if (type == CY_U3P_DMA_CB_PROD_EVENT)
+    switch (type)
     {
-        CyU3PDmaChannelCommitBuffer (&glChHandleUarttoUsb, input->buffer_p.count, 0);
-        glPktsPending++;
+        case CY_U3P_DMA_CB_PROD_EVENT:
+            CyU3PDmaChannelCommitBuffer (&glChHandleUarttoUsb, input->buffer_p.count, 0);
+            glPktsPending++;
+            break;
+
+        case CY_U3P_DMA_CB_CONS_EVENT:
+            CyFxUsbUartDebugPrint("DMA: CONS_EVENT\r\n");
+            break;
+
+        case CY_U3P_DMA_CB_ABORTED:
+            CyFxUsbUartDebugPrint("DMA: ABORTED\r\n");
+            break;
+
+        case CY_U3P_DMA_CB_ERROR:
+            CyFxUsbUartDebugPrint("DMA: ERROR\r\n");
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -198,7 +215,8 @@ CyFxUSBUARTAppStart(
     dmaCfg.size         = 32;
     dmaCfg.prodSckId    = CY_FX_EP_PRODUCER2_SOCKET;
     dmaCfg.consSckId    = CY_FX_EP_CONSUMER2_SOCKET;    
-    dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
+    dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_CONS_EVENT |
+                          CY_U3P_DMA_CB_ABORTED | CY_U3P_DMA_CB_ERROR;
     dmaCfg.cb           = CyFxUSBUARTDmaCallback;
 
     apiRetStatus = CyU3PDmaChannelCreate (&glChHandleUarttoUsb,
