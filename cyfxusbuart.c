@@ -36,6 +36,7 @@
 CyU3PThread       USBUARTAppThread;
 CyU3PDmaChannel   glChHandleUsbtoUart;          /* DMA AUTO (USB TO UART) channel handle.*/
 CyU3PDmaChannel   glChHandleUarttoUsb;          /* DMA AUTO_SIG(UART TO USB) channel handle.*/
+CyU3PDmaChannel   glChHandleDebug;              /* DMA MANUAL_OUT (Debug console) channel handle. */
 CyBool_t          glIsApplnActive = CyFalse;    /* Whether the application is active or not. */
 CyU3PUartConfig_t glUartConfig = {0};           /* Current UART configuration. */
 volatile uint16_t glPktsPending = 0;            /* Number of packets that have been committed since last check. */
@@ -140,6 +141,37 @@ CyFxUSBUARTAppStart(
         CyFxAppErrorHandler(apiRetStatus);
     }
 
+    /* Debug Endpoint Configuration */
+    /* Debug Interrupt Endpoint */
+    epCfg.epType = CY_U3P_USB_EP_INTR;
+    epCfg.pcktSize = (usbSpeed == CY_U3P_SUPER_SPEED) ? 1024 : 64;
+    epCfg.isoPkts = 1;
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_INTERRUPT, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler(apiRetStatus);
+    }
+
+    /* Debug Consumer Endpoint (Bulk IN) */
+    epCfg.epType = CY_U3P_USB_EP_BULK;
+    epCfg.pcktSize = size;
+    epCfg.streams = 0;
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_CONSUMER, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler(apiRetStatus);
+    }
+
+    /* Debug Producer Endpoint (Bulk OUT - Dummy) */
+    epCfg.epType = CY_U3P_USB_EP_BULK;
+    epCfg.pcktSize = size;
+    epCfg.streams = 0;
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_PRODUCER, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler(apiRetStatus);
+    }
+
 
     /* Create a DMA_AUTO channel between usb producer socket and uart consumer socket */
     dmaCfg.size = size;
@@ -186,6 +218,33 @@ CyFxUSBUARTAppStart(
     apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleUarttoUsb, 0);
     if (apiRetStatus != CY_U3P_SUCCESS)
     {       
+        CyFxAppErrorHandler(apiRetStatus);
+    }
+
+    /* Create DMA Channel for Debug Console (CPU to USB) */
+    dmaCfg.size = size;
+    dmaCfg.count = 4;
+    dmaCfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
+    dmaCfg.consSckId = CY_FX_EP_DEBUG_CONS_SOCKET;
+    dmaCfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
+    dmaCfg.notification = 0;
+    dmaCfg.cb = NULL;
+    dmaCfg.prodHeader = 0;
+    dmaCfg.prodFooter = 0;
+    dmaCfg.consHeader = 0;
+    dmaCfg.prodAvailCount = 0;
+
+    apiRetStatus = CyU3PDmaChannelCreate (&glChHandleDebug,
+            CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler(apiRetStatus);
+    }
+
+    /* Set Debug DMA Channel transfer size */
+    apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleDebug, 0);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
         CyFxAppErrorHandler(apiRetStatus);
     }
 
@@ -236,6 +295,33 @@ CyFxUSBUARTAppStop (
     {
         CyFxAppErrorHandler (apiRetStatus);
     }
+
+    /* Disable Debug Endpoints */
+    /* Debug Interrupt */
+    CyU3PUsbFlushEp(CY_FX_EP_DEBUG_INTERRUPT);
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_INTERRUPT, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+    /* Debug Consumer */
+    CyU3PUsbFlushEp(CY_FX_EP_DEBUG_CONSUMER);
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_CONSUMER, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+
+    /* Debug Producer (Dummy) */
+    CyU3PUsbFlushEp(CY_FX_EP_DEBUG_PRODUCER);
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_PRODUCER, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+
+    /* Destroy Debug Channel */
+    CyU3PDmaChannelDestroy (&glChHandleDebug);
 }
 
 /* This is the callback function to handle the USB events. */
@@ -284,7 +370,7 @@ CyFxUSBUARTAppUSBSetupCB (
     uint16_t readCount = 0;
     uint8_t  bRequest, bReqType;
     uint8_t  bType, bTarget;
-    uint16_t wValue;
+    uint16_t wValue, wIndex;
     uint8_t config_data[7];
     CyBool_t isHandled = CyFalse;
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
@@ -300,6 +386,7 @@ CyFxUSBUARTAppUSBSetupCB (
     bTarget  = (bReqType & CY_U3P_USB_TARGET_MASK);
     bRequest = ((setupdat0 & CY_U3P_USB_REQUEST_MASK) >> CY_U3P_USB_REQUEST_POS);
     wValue   = ((setupdat0 & CY_U3P_USB_VALUE_MASK)   >> CY_U3P_USB_VALUE_POS);
+    wIndex   = (setupdat1 & CY_U3P_USB_INDEX_MASK);
 
     if (bType == CY_U3P_USB_STANDARD_RQT)
     {
@@ -323,7 +410,38 @@ CyFxUSBUARTAppUSBSetupCB (
     {
         isHandled = CyTrue;
 
-        /* CDC Specific Requests */
+        /* Handle Debug Interface (Interface 2) Requests */
+        if (wIndex == 0x02)
+        {
+            if (bRequest == SET_LINE_CODING)
+            {
+                /* Read and discard data */
+                status = CyU3PUsbGetEP0Data(0x07, config_data, &readCount);
+                if (status == CY_U3P_SUCCESS)
+                {
+                    CyU3PUsbAckSetup();
+                }
+            }
+            else if (bRequest == GET_LINE_CODING)
+            {
+                /* Send dummy 115200 8N1 */
+                config_data[0] = 0x00; config_data[1] = 0xC2; config_data[2] = 0x01; config_data[3] = 0x00;
+                config_data[4] = 0x00; config_data[5] = 0x00; config_data[6] = 0x08;
+                status = CyU3PUsbSendEP0Data(0x07, config_data);
+            }
+            else if (bRequest == SET_CONTROL_LINE_STATE)
+            {
+                CyU3PUsbAckSetup();
+            }
+            
+            if (status != CY_U3P_SUCCESS)
+            {
+                CyFxAppErrorHandler(status);
+            }
+            return CyTrue;
+        }
+
+        /* CDC Specific Requests for UART */
         /* set_line_coding */
         if (bRequest == SET_LINE_CODING)                                                      
         {
@@ -703,3 +821,50 @@ handle_fatal_error:
 
 }
 
+/* Function to send debug strings over the second CDC interface */
+CyU3PReturnStatus_t
+CyFxUsbUartDebugPrint (
+        const char *debugMsg
+        )
+{
+    CyU3PDmaBuffer_t dmaInfo;
+    CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+    uint16_t length = 0;
+
+    if (!glIsApplnActive)
+    {
+        return CY_U3P_ERROR_NOT_STARTED;
+    }
+    
+    /* Calculate length */
+    while (debugMsg[length] != '\0')
+    {
+        length++;
+    }
+
+    if (length == 0)
+    {
+        return CY_U3P_SUCCESS;
+    }
+
+    /* Acquire a buffer */
+    status = CyU3PDmaChannelGetBuffer (&glChHandleDebug, &dmaInfo, CYU3P_WAIT_FOREVER);
+    if (status != CY_U3P_SUCCESS)
+    {
+        return status;
+    }
+
+    /* Copy data. Note: If message is longer than buffer size, it will be truncated. */
+    if (length > dmaInfo.size)
+    {
+        length = dmaInfo.size;
+    }
+
+    CyU3PMemCopy (dmaInfo.buffer, (uint8_t *)debugMsg, length);
+    dmaInfo.count = length;
+
+    /* Commit buffer */
+    status = CyU3PDmaChannelCommitBuffer (&glChHandleDebug, dmaInfo.count, 0);
+
+    return status;
+}

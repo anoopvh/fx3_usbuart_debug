@@ -28,10 +28,10 @@ const uint8_t CyFxUSB30DeviceDscr[] __attribute__ ((aligned (32))) =
 {
     0x12,                           /* Descriptor size */
     CY_U3P_USB_DEVICE_DESCR,        /* Device descriptor type */
-    0x10,0x03,                      /* USB 3.1 */
-    0x02,                           /* Device class */
-    0x00,                           /* Device sub-class */
-    0x00,                           /* Device protocol */
+    0x20,0x03,                      /* USB 3.2 Gen 1 (USB 5Gbps) */
+    0xEF,                           /* Device class: Composite */
+    0x02,                           /* Device sub-class */
+    0x01,                           /* Device protocol */
     0x09,                           /* Maxpacket size for EP0 */
     0xB4,0x04,                      /* Vendor ID */
     0x08,0x00,                      /* Product ID - Using the Cypress USB-UART PID for driver binding */
@@ -49,9 +49,9 @@ const uint8_t CyFxUSB20DeviceDscr[] __attribute__ ((aligned (32))) =
     0x12,                           /* Descriptor size */
     CY_U3P_USB_DEVICE_DESCR,        /* Device descriptor type */
     0x10,0x02,                      /* USB 2.10 */
-    0x02,                           /* Device class */
-    0x00,                           /* Device sub-class */
-    0x00,                           /* Device protocol */
+    0xEF,                           /* Device class: Composite */
+    0x02,                           /* Device sub-class */
+    0x01,                           /* Device protocol */
     0x40,                           /* Maxpacket size for EP0  */
     0xB4,0x04,                      /* Vendor ID */
     0x08,0x00,                      /* Product ID  - Using the Cypress USB-UART PID for driver binding */
@@ -110,12 +110,22 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0x55,0x00,                      /* Length of this descriptor and all sub descriptors */
-    0x02,                           /* Number of interfaces */
+    0xB1,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0x04,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x03,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - bus powered */
     0x19,                           /* Max power consumption of device (in 8mA unit) : 200mA */
+
+    /* Interface Association Descriptor (UART) */
+    0x08,                           /* Descriptor size */
+    0x0B,                           /* Interface Association Descriptor type */
+    0x00,                           /* First Interface Number */
+    0x02,                           /* Number of Interfaces */
+    0x02,                           /* Function Class: Communication Interface */
+    0x02,                           /* Function SubClass: Abstract Control Model */
+    0x01,                           /* Function Protocol: Common AT Commands */
+    0x00,                           /* Function String Index */
 
     /* Communication Interface descriptor */
     0x09,                           /* Descriptor size */
@@ -211,6 +221,110 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
     0x00,                           /* Max no. of packets in a burst : 1 */
     0x00,                           /* Mult.: Max number of packets : 1 */
+    0x00,0x00,                      /* Bytes per interval : 1024 */
+
+    /* Interface Association Descriptor (Debug) */
+    0x08,                           /* Descriptor size */
+    0x0B,                           /* Interface Association Descriptor type */
+    0x02,                           /* First Interface Number */
+    0x02,                           /* Number of Interfaces */
+    0x02,                           /* Function Class: Communication Interface */
+    0x02,                           /* Function SubClass: Abstract Control Model */
+    0x01,                           /* Function Protocol: Common AT Commands */
+    0x00,                           /* Function String Index */
+
+    /* Communication Interface descriptor (Debug) */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x02,                           /* Interface number */
+    0x00,                           /* Alternate setting number */
+    0x01,                           /* Number of endpoints */
+    0x02,                           /* Interface class : Communication interface */
+    0x02,                           /* Interface sub class */
+    0x01,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+    /* CDC Class-specific Descriptors (Debug) */
+    /* Header functional Descriptor */
+    0x05,                           /* Descriptors length(5) */
+    0x24,                           /* Descriptor type : CS_Interface */
+    0x00,                           /* DescriptorSubType : Header Functional Descriptor */
+    0x10,0x01,                      /* bcdCDC : CDC Release Number */
+
+    /* Abstract Control Management Functional Descriptor */
+    0x04,                           /* Descriptors Length (4) */
+    0x24,                           /* bDescriptorType: CS_INTERFACE */
+    0x02,                           /* bDescriptorSubType: Abstract Control Model Functional Descriptor */
+    0x02,                           /* bmCapabilities */
+
+    /* Union Functional Descriptor */
+    0x05,                           /* Descriptors Length (5) */
+    0x24,                           /* bDescriptorType: CS_INTERFACE */
+    0x06,                           /* bDescriptorSubType: Union Functional Descriptor */
+    0x02,                           /* bMasterInterface */
+    0x03,                           /* bSlaveInterface */
+
+    /* Call Management Functional Descriptor */
+    0x05,                           /*  Descriptors Length (5) */
+    0x24,                           /*  bDescriptorType: CS_INTERFACE */
+    0x01,                           /*  bDescriptorSubType: Call Management Functional Descriptor */
+    0x00,                           /*  bmCapabilities */
+    0x03,                           /*  Interface Number of Data Class interface */
+
+    /* Endpoint Descriptor(Interrupt) (Debug) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x83,                           /* Endpoint address (EP3 IN) */
+    CY_U3P_USB_EP_INTR,             /* Interrupt endpoint type */
+    0x40,0x00,                      /* Max packet size = 1024 bytes */
+    0x01,                           /* Servicing interval */
+
+    /* Super speed endpoint companion descriptor */
+    0x06,                           /* Descriptor size */
+    CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
+    0x00,                           /* Max no. of packets in a Burst : 1 */
+    0x00,                           /* Mult.: Max number of packets : 1 */
+    0x40,0x00,                      /* Bytes per interval : 1024 */
+
+    /* Data Interface Descriptor (Debug) */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x03,                           /* Interface number */
+    0x00,                           /* Alternate setting number */
+    0x02,                           /* Number of endpoints (BULK IN and OUT) */
+    0x0A,                           /* Interface class: Data interface */
+    0x00,                           /* Interface sub class */
+    0x00,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+    /* Endpoint Descriptor(BULK-CONSUMER) (Debug) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x84,                           /* Endpoint address (EP4 IN) */
+    CY_U3P_USB_EP_BULK,             /* BULK endpoint type */
+    0x00,0x04,                      /* Max packet size = 1024 bytes */
+    0x00,                           /* Servicing interval */
+
+    /* Super speed endpoint companion descriptor */
+    0x06,                           /* Descriptor size */
+    CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
+    0x00,                           /* Max no. of packets in a burst : 1 */
+    0x00,                           /* Mult.: Max number of packets : 1 */
+    0x00,0x00,                      /* Bytes per interval : 1024 */
+
+    /* Endpoint Descriptor(BULK-PRODUCER) (Debug Dummy) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x04,                           /* Endpoint address (EP4 OUT) */
+    CY_U3P_USB_EP_BULK,             /* BULK endpoint type */
+    0x00,0x04,                      /* Max packet size = 1024 bytes */
+    0x00,                           /* Servicing interval */
+
+    /* Super speed endpoint companion descriptor */
+    0x06,                           /* Descriptor size */
+    CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
+    0x00,                           /* Max no. of packets in a burst : 1 */
+    0x00,                           /* Mult.: Max number of packets : 1 */
     0x00,0x00                       /* Bytes per interval : 1024 */
 };
 
@@ -220,12 +334,22 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0x43,0x00,                      /* Length of this descriptor and all sub descriptors */
-    0x02,                           /* Number of interfaces */
+    0x8D,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0x04,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x03,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - bus powered */
     0x64,                           /* Max power consumption of device (in 2mA unit) : 200mA */
+
+    /* Interface Association Descriptor (UART) */
+    0x08,                           /* Descriptor size */
+    0x0B,                           /* Interface Association Descriptor type */
+    0x00,                           /* First Interface Number */
+    0x02,                           /* Number of Interfaces */
+    0x02,                           /* Function Class: Communication Interface */
+    0x02,                           /* Function SubClass: Abstract Control Model */
+    0x01,                           /* Function Protocol: Common AT Commands */
+    0x00,                           /* Function String Index */
 
     /* Communication Interface descriptor */
     0x09,                           /* Descriptor size */
@@ -301,6 +425,89 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_EP_BULK,             /* Bulk endpoint type */
     0x00,0x02,                      /* Max packet size = 512 bytes */
     0x00,                           /* Servicing interval for data transfers */
+    
+    /* Interface Association Descriptor (Debug) */
+    0x08,                           /* Descriptor size */
+    0x0B,                           /* Interface Association Descriptor type */
+    0x02,                           /* First Interface Number */
+    0x02,                           /* Number of Interfaces */
+    0x02,                           /* Function Class: Communication Interface */
+    0x02,                           /* Function SubClass: Abstract Control Model */
+    0x01,                           /* Function Protocol: Common AT Commands */
+    0x00,                           /* Function String Index */
+
+    /* Communication Interface descriptor (Debug) */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x02,                           /* Interface number */
+    0x00,                           /* Alternate setting number */
+    0x01,                           /* Number of endpoints */
+    0x02,                           /* Interface class : Communication Interface */
+    0x02,                           /* Interface sub class */
+    0x01,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+    /* CDC Class-specific Descriptors (Debug) */
+    /* Header functional Descriptor */
+    0x05,                           /* Descriptors length(5) */
+    0x24,                           /* Descriptor type : CS_Interface */
+    0x00,                           /* DescriptorSubType : Header Functional Descriptor */
+    0x10,0x01,                      /* bcdCDC : CDC Release Number */
+
+    /* Abstract Control Management Functional Descriptor */
+    0x04,                           /* Descriptors Length (4) */
+    0x24,                           /* bDescriptorType: CS_INTERFACE */
+    0x02,                           /* bDescriptorSubType: Abstract Control Model Functional Descriptor */
+    0x02,                           /* bmCapabilities */
+
+    /* Union Functional Descriptor */
+    0x05,                           /* Descriptors Length (5) */
+    0x24,                           /* bDescriptorType: CS_INTERFACE */
+    0x06,                           /* bDescriptorSubType: Union Functional Descriptor */
+    0x02,                           /* bMasterInterface */
+    0x03,                           /* bSlaveInterface */
+
+    /* Call Management Functional Descriptor */
+    0x05,                           /*  Descriptors Length (5) */
+    0x24,                           /*  bDescriptorType: CS_INTERFACE */
+    0x01,                           /*  bDescriptorSubType: Call Management Functional Descriptor */
+    0x00,                           /*  bmCapabilities */
+    0x03,                           /*  Interface Number of Data Class interface */
+
+    /* Endpoint Descriptor(Interrupt) (Debug) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x83,                           /* Endpoint address (EP3 IN) */
+    CY_U3P_USB_EP_INTR,             /* Interrupt endpoint type */
+    0x40,0x00,                      /* Max packet size = 64 bytes */
+    0x02,                           /* Servicing interval */
+
+    /* Data Interface Descriptor (Debug) */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x03,                           /* Interface number */
+    0x00,                           /* Alternate setting number */
+    0x02,                           /* Number of endpoints (BULK IN and OUT) */
+    0x0A,                           /* Interface class: Data interface */
+    0x00,                           /* Interface sub class */
+    0x00,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+    /* Endpoint Descriptor(BULK- CONSUMER) (Debug) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x84,                           /* Endpoint address (EP4 IN) */
+    CY_U3P_USB_EP_BULK,             /* Bulk endpoint type */
+    0x00,0x02,                      /* Max packet size = 512 bytes */
+    0x00,                           /* Servicing interval */
+
+    /* Endpoint Descriptor(BULK-PRODUCER) (Debug Dummy) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x04,                           /* Endpoint address (EP4 OUT) */
+    CY_U3P_USB_EP_BULK,             /* BULK endpoint type */
+    0x00,0x02,                      /* Max packet size = 512 bytes */
+    0x00,                           /* Servicing interval */
 };
 
 /* Standard full speed configuration descriptor */
@@ -309,12 +516,22 @@ const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0x43,0x00,                      /* Length of this descriptor and all sub descriptors */
-    0x02,                           /* Number of interfaces */
+    0x8D,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0x04,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x03,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - bus powered */
     0x64,                           /* Max power consumption of device (in 2mA unit) : 200mA */
+
+    /* Interface Association Descriptor (UART) */
+    0x08,                           /* Descriptor size */
+    0x0B,                           /* Interface Association Descriptor type */
+    0x00,                           /* First Interface Number */
+    0x02,                           /* Number of Interfaces */
+    0x02,                           /* Function Class: Communication Interface */
+    0x02,                           /* Function SubClass: Abstract Control Model */
+    0x01,                           /* Function Protocol: Common AT Commands */
+    0x00,                           /* Function String Index */
 
     /* Communication Interface descriptor */
     0x09,                           /* Descriptor size */
@@ -392,6 +609,87 @@ const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_EP_BULK,             /* Bulk endpoint type */
     0x40,0x00,                      /* Max packet size = 64 bytes */
     0x00,                           /* Servicing interval for data transfers */
+
+    /* Interface Association Descriptor (Debug) */
+    0x08,                           /* Descriptor size */
+    0x0B,                           /* Interface Association Descriptor type */
+    0x02,                           /* First Interface Number */
+    0x02,                           /* Number of Interfaces */
+    0x02,                           /* Function Class: Communication Interface */
+    0x02,                           /* Function SubClass: Abstract Control Model */
+    0x01,                           /* Function Protocol: Common AT Commands */
+    0x00,                           /* Function String Index */
+
+    /* Communication Interface descriptor (Debug) */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x02,                           /* Interface number */
+    0x00,                           /* Alternate setting number */
+    0x01,                           /* Number of endpoints */
+    0x02,                           /* Interface class: Communication interface*/
+    0x02,                           /* Interface sub class */
+    0x01,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+    /* CDC Class-specific Descriptors (Debug) */
+    /* Header functional Descriptor */
+    0x05,                           /* Descriptors length(5) */
+    0x24,                           /* Descriptor type : CS_Interface */
+    0x00,                           /* DescriptorSubType : Header Functional Descriptor */
+    0x10,0x01,                      /* bcdCDC : CDC Release Number */
+
+    /* Abstract Control Management Functional Descriptor */
+    0x04,                           /* Descriptors Length (4) */
+    0x24,                           /* bDescriptorType: CS_INTERFACE */
+    0x02,                           /* bDescriptorSubType: Abstract Control Model Functional Descriptor */
+    0x02,                           /* bmCapabilities */
+
+    /* Union Functional Descriptor */
+    0x05,                           /* Descriptors Length (5) */
+    0x24,                           /* bDescriptorType: CS_INTERFACE */
+    0x06,                           /* bDescriptorSubType: Union Functional Descriptor */
+    0x02,                           /* bMasterInterface */
+    0x03,                           /* bSlaveInterface */
+
+    /* Call Management Functional Descriptor */
+    0x05,                           /*  Descriptors Length (5) */
+    0x24,                           /*  bDescriptorType: CS_INTERFACE */
+    0x01,                           /*  bDescriptorSubType: Call Management Functional Descriptor */
+    0x00,                           /*  bmCapabilities */
+    0x03,                           /*  Interface Number of Data Class interface */
+
+    /* Endpoint Descriptor(Interrupt) (Debug) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x83,                           /* Endpoint address (EP3 IN) */
+    CY_U3P_USB_EP_INTR,             /* Interrupt endpoint type */
+    0x10,0x00,                      /* Max packet size = 16 bytes */
+    0x02,                           /* Servicing interval */
+
+    /* Data Interface Descriptor (Debug) */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x03,                           /* Interface number */
+    0x00,                           /* Alternate setting number */
+    0x02,                           /* Number of endpoints (BULK IN and OUT) */
+    0x0A,                           /* Interface class: Data interface */
+    0x00,                           /* Interface sub class */
+    0x00,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+    /* Endpoint Descriptor(BULK- CONSUMER) (Debug) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x84,                           /* Endpoint address (EP4 IN) */
+    CY_U3P_USB_EP_BULK,             /* Bulk endpoint type */
+    0x40,0x00,                      /* Max packet size = 64 bytes */
+    0x00,                           /* Servicing interval */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x04,                           /* Endpoint address (EP4 OUT) */
+    CY_U3P_USB_EP_BULK,             /* BULK endpoint type */
+    0x40,0x00,                      /* Max packet size = 64 bytes */
+    0x00,                           /* Servicing interval */
 };
 
 /* Standard language ID string descriptor */
