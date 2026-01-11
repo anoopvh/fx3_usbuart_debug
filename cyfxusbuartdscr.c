@@ -585,7 +585,8 @@ const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
     0x82,                           /* Endpoint address and description */
     CY_U3P_USB_EP_BULK,             /* Bulk endpoint type */
     0x40,0x00,                      /* Max packet size = 64 bytes */
-    0x00,                           /* Servicing interval for data transfers */,
+    0x00,                           /* Servicing interval for data transfers */
+
     /* Interface Association Descriptor (Debug) */
     0x08,                           /* Descriptor size */
     0x0B,                           /* Interface Association Descriptor type */
