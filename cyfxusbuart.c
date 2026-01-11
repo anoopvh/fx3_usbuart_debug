@@ -226,10 +226,10 @@ CyFxUSBUARTAppStart(
     dmaCfg.size         = 32;
     dmaCfg.prodSckId    = CY_FX_EP_PRODUCER2_SOCKET;
     dmaCfg.consSckId    = CY_FX_EP_CONSUMER2_SOCKET;    
+
     dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_PROD_SUSP |
                           CY_U3P_DMA_CB_CONS_SUSP | CY_U3P_DMA_CB_ABORTED |
                           CY_U3P_DMA_CB_ERROR;
-
     dmaCfg.cb           = CyFxUSBUARTDmaCallback;
 
     apiRetStatus = CyU3PDmaChannelCreate (&glChHandleUarttoUsb,
@@ -765,9 +765,9 @@ USBUARTAppThread_Entry (
 
             glPktsPending = 0;
             
-            static uint8_t counter = 0;
+            static uint16_t counter = 0;
             counter++;
-            if (counter == 20)
+            if (counter == 1200)
             {
                 CyFxUsbUartDebugPrint("Alive\r\n");
                 counter = 0;
