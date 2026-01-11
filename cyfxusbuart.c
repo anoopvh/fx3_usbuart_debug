@@ -733,6 +733,14 @@ USBUARTAppThread_Entry (
             }
 
             glPktsPending = 0;
+            
+            static uint8_t counter = 0;
+            counter++;
+            if (counter == 20)
+            {
+                CyFxUsbUartDebugPrint("Alive\r\n");
+                counter = 0;
+            }
         }
 
         CyU3PThreadSleep (50);
