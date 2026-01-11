@@ -40,6 +40,7 @@
 #define CY_FX_EP_INTERRUPT              0x81                             /* EP 1 INTR */
 #define CY_FX_EP_DEBUG_INTERRUPT        0x83                             /* EP 3 INTR - Debug Comm */
 #define CY_FX_EP_DEBUG_CONSUMER         0x84                             /* EP 4 IN - Debug Data */
+#define CY_FX_EP_DEBUG_PRODUCER         0x04                             /* EP 4 OUT - Debug Data (Dummy) */
 
 #define CY_FX_EP_PRODUCER1_SOCKET        CY_U3P_UIB_SOCKET_PROD_2
 #define CY_FX_EP_CONSUMER1_SOCKET        CY_U3P_LPP_SOCKET_UART_CONS    

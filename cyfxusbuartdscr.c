@@ -110,7 +110,7 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0xA4,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0xB1,0x00,                      /* Length of this descriptor and all sub descriptors */
     0x04,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x03,                           /* COnfiguration string index */
@@ -291,7 +291,7 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
     0x03,                           /* Interface number */
     0x00,                           /* Alternate setting number */
-    0x01,                           /* Number of endpoints (Only IN for debug print) */
+    0x02,                           /* Number of endpoints (BULK IN and OUT) */
     0x0A,                           /* Interface class: Data interface */
     0x00,                           /* Interface sub class */
     0x00,                           /* Interface protocol code */
@@ -310,6 +310,21 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
     0x00,                           /* Max no. of packets in a burst : 1 */
     0x00,                           /* Mult.: Max number of packets : 1 */
+    0x00,0x00,                      /* Bytes per interval : 1024 */
+
+    /* Endpoint Descriptor(BULK-PRODUCER) (Debug Dummy) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x04,                           /* Endpoint address (EP4 OUT) */
+    CY_U3P_USB_EP_BULK,             /* BULK endpoint type */
+    0x00,0x04,                      /* Max packet size = 1024 bytes */
+    0x00,                           /* Servicing interval */
+
+    /* Super speed endpoint companion descriptor */
+    0x06,                           /* Descriptor size */
+    CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
+    0x00,                           /* Max no. of packets in a burst : 1 */
+    0x00,                           /* Mult.: Max number of packets : 1 */
     0x00,0x00                       /* Bytes per interval : 1024 */
 };
 
@@ -319,7 +334,7 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0x86,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0x8D,0x00,                      /* Length of this descriptor and all sub descriptors */
     0x04,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x03,                           /* COnfiguration string index */
@@ -472,7 +487,7 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
     0x03,                           /* Interface number */
     0x00,                           /* Alternate setting number */
-    0x01,                           /* Number of endpoints */
+    0x02,                           /* Number of endpoints (BULK IN and OUT) */
     0x0A,                           /* Interface class: Data interface */
     0x00,                           /* Interface sub class */
     0x00,                           /* Interface protocol code */
@@ -485,6 +500,14 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_EP_BULK,             /* Bulk endpoint type */
     0x00,0x02,                      /* Max packet size = 512 bytes */
     0x00,                           /* Servicing interval */
+
+    /* Endpoint Descriptor(BULK-PRODUCER) (Debug Dummy) */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x04,                           /* Endpoint address (EP4 OUT) */
+    CY_U3P_USB_EP_BULK,             /* BULK endpoint type */
+    0x00,0x02,                      /* Max packet size = 512 bytes */
+    0x00,                           /* Servicing interval */
 };
 
 /* Standard full speed configuration descriptor */
@@ -493,7 +516,7 @@ const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0x86,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0x8D,0x00,                      /* Length of this descriptor and all sub descriptors */
     0x04,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x03,                           /* COnfiguration string index */
@@ -648,7 +671,7 @@ const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
     0x03,                           /* Interface number */
     0x00,                           /* Alternate setting number */
-    0x01,                           /* Number of endpoints */
+    0x02,                           /* Number of endpoints (BULK IN and OUT) */
     0x0A,                           /* Interface class: Data interface */
     0x00,                           /* Interface sub class */
     0x00,                           /* Interface protocol code */
@@ -659,6 +682,12 @@ const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
     0x84,                           /* Endpoint address (EP4 IN) */
     CY_U3P_USB_EP_BULK,             /* Bulk endpoint type */
+    0x40,0x00,                      /* Max packet size = 64 bytes */
+    0x00,                           /* Servicing interval */
+    0x07,                           /* Descriptor size */
+    CY_U3P_USB_ENDPNT_DESCR,        /* Endpoint descriptor type */
+    0x04,                           /* Endpoint address (EP4 OUT) */
+    CY_U3P_USB_EP_BULK,             /* BULK endpoint type */
     0x40,0x00,                      /* Max packet size = 64 bytes */
     0x00,                           /* Servicing interval */
 };

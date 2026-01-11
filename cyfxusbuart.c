@@ -162,6 +162,16 @@ CyFxUSBUARTAppStart(
         CyFxAppErrorHandler(apiRetStatus);
     }
 
+    /* Debug Producer Endpoint (Bulk OUT - Dummy) */
+    epCfg.epType = CY_U3P_USB_EP_BULK;
+    epCfg.pcktSize = size;
+    epCfg.streams = 0;
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_PRODUCER, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler(apiRetStatus);
+    }
+
 
     /* Create a DMA_AUTO channel between usb producer socket and uart consumer socket */
     dmaCfg.size = size;
@@ -302,6 +312,14 @@ CyFxUSBUARTAppStop (
         CyFxAppErrorHandler (apiRetStatus);
     }
 
+    /* Debug Producer (Dummy) */
+    CyU3PUsbFlushEp(CY_FX_EP_DEBUG_PRODUCER);
+    apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_DEBUG_PRODUCER, &epCfg);
+    if (apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+
     /* Destroy Debug Channel */
     CyU3PDmaChannelDestroy (&glChHandleDebug);
 }
@@ -399,6 +417,10 @@ CyFxUSBUARTAppUSBSetupCB (
             {
                 /* Read and discard data */
                 status = CyU3PUsbGetEP0Data(0x07, config_data, &readCount);
+                if (status == CY_U3P_SUCCESS)
+                {
+                    CyU3PUsbAckSetup();
+                }
             }
             else if (bRequest == GET_LINE_CODING)
             {
