@@ -38,12 +38,16 @@
 #define CY_FX_EP_PRODUCER               0x02                             /* EP 2 OUT */
 #define CY_FX_EP_CONSUMER               0x82                             /* EP 2 IN */
 #define CY_FX_EP_INTERRUPT              0x81                             /* EP 1 INTR */
+#define CY_FX_EP_DEBUG_INTERRUPT        0x83                             /* EP 3 INTR - Debug Comm */
+#define CY_FX_EP_DEBUG_CONSUMER         0x84                             /* EP 4 IN - Debug Data */
 
 #define CY_FX_EP_PRODUCER1_SOCKET        CY_U3P_UIB_SOCKET_PROD_2
 #define CY_FX_EP_CONSUMER1_SOCKET        CY_U3P_LPP_SOCKET_UART_CONS    
 #define CY_FX_EP_PRODUCER2_SOCKET        CY_U3P_LPP_SOCKET_UART_PROD        
 #define CY_FX_EP_CONSUMER2_SOCKET        CY_U3P_UIB_SOCKET_CONS_2
 #define CY_FX_EP_INTR_CONSUMER1_SOCKET   CY_U3P_UIB_SOCKET_CONS_1
+#define CY_FX_EP_DEBUG_INTR_SOCKET       CY_U3P_UIB_SOCKET_CONS_3
+#define CY_FX_EP_DEBUG_CONS_SOCKET       CY_U3P_UIB_SOCKET_CONS_4
 
 /* Descriptor Types */
 #define CY_FX_BOS_DSCR_TYPE             15
@@ -68,8 +72,14 @@ extern const uint8_t CyFxUSBStringLangIDDscr[];
 extern const uint8_t CyFxUSBManufactureDscr[];
 extern const uint8_t CyFxUSBProductDscr[];
 
+extern CyU3PReturnStatus_t
+CyFxUsbUartDebugPrint (
+        const char *debugMsg
+        );
+
 #include "cyu3externcend.h"
 
 #endif /* _INCLUDED_CYFXUSBUART_H_ */
 
 /*[]*/
+
