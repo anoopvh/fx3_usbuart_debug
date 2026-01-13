@@ -33,6 +33,11 @@
 #include <cyu3utils.h>
 #include "cyfxusbuart.h"
 
+#define CB_ERROR_SOLUTION_SUGGESTED /*Only when needed to check the solution suggestion from the case*/
+
+#ifdef CB_ERROR_SOLUTION_SUGGESTED
+    #include <cyu3gpio.h>
+#endif
 CyU3PThread       USBUARTAppThread;
 CyU3PDmaChannel   glChHandleUsbtoUart;          /* DMA AUTO (USB TO UART) channel handle.*/
 CyU3PDmaChannel   glChHandleUarttoUsb;          /* DMA AUTO_SIG(UART TO USB) channel handle.*/
@@ -44,6 +49,29 @@ volatile uint16_t glPktsPending = 0;            /* Number of packets that have b
 #define SET_LINE_CODING        0x20
 #define GET_LINE_CODING        0x21
 #define SET_CONTROL_LINE_STATE 0x22
+
+#ifdef CB_ERROR_SOLUTION_SUGGESTED
+    /*
+    * The maximum amount of data that could be received on the UART_RX pin in a burst. The DMA buffer
+    * used to receive data needs to be at least of this size.
+    */
+    #define UART_MAX_MSG_SIZE       (128)
+
+    /*
+    * We use the UART_RX_BYTE_COUNT register to check whether any new data has been received.
+    * The register is initialized to a large value of DFLT_UART_RX_COUNT and allowed to count
+    * down as each byte is being received.
+    */
+    #define DFLT_UART_RX_COUNT      (0x400)
+
+    /*
+    * Delay between iterations of the UART task. This time should be shorter than the half of the time taken
+    * to receive UART_MAX_MSG_SIZE bytes of data on the UART_RX pin. Default value is set to 5 ms as it takes
+    * ~11 ms to receive 128 bytes of data at 115200 baud.
+    */
+    #define UART_TASK_DELAY         (5)
+#endif
+
 
 void
 CyFxAppErrorHandler (
@@ -72,6 +100,11 @@ CyFxUSBUARTDmaCallback(
     {
         CyU3PDmaChannelCommitBuffer (&glChHandleUarttoUsb, input->buffer_p.count, 0);
         glPktsPending++;
+
+#ifdef CB_ERROR_SOLUTION_SUGGESTED
+        /* Re-initialize UART_RX_BYTE_COUNT register to a large value. */
+        CyU3PUartRxSetBlockXfer (DFLT_UART_RX_COUNT);
+#endif
     }
 }
 
@@ -161,9 +194,14 @@ CyFxUSBUARTAppStart(
         CyFxAppErrorHandler(apiRetStatus);
     }
 
-    /* Create a DMA_MANUAL channel between uart producer socket and usb consumer socket */    
+    /* Create a DMA_MANUAL channel between uart producer socket and usb consumer socket */
+#ifndef CB_ERROR_SOLUTION_SUGGESTED
     /* Use a smaller buffer size (32 bytes) to ensure that packets get filled in a short time. */
     dmaCfg.size         = 32;
+#else
+    dmaCfg.size         = UART_MAX_MSG_SIZE;
+#endif
+
     dmaCfg.prodSckId    = CY_FX_EP_PRODUCER2_SOCKET;
     dmaCfg.consSckId    = CY_FX_EP_CONSUMER2_SOCKET;    
     dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
@@ -373,6 +411,7 @@ CyFxUSBUARTAppUSBSetupCB (
                 uartConfig.flowCtrl = CyFalse;
                 uartConfig.isDma = CyTrue;
 
+#ifndef CB_ERROR_SOLUTION_SUGGESTED
                 /* Set the uart configuration */
                 apiRetStatus = CyU3PUartSetConfig (&uartConfig, NULL);
                 if (apiRetStatus == CY_U3P_SUCCESS)
@@ -380,6 +419,26 @@ CyFxUSBUARTAppUSBSetupCB (
                     CyU3PMemCopy ((uint8_t *)&glUartConfig, (uint8_t *)&uartConfig,
                             sizeof (CyU3PUartConfig_t));
                 }
+#else
+                /* Call CyU3PUartSetConfig to change configuration only if any of the parameters have changed. */
+                if (
+                        (uartConfig.baudRate != glUartConfig.baudRate) ||
+                        (uartConfig.stopBit != glUartConfig.stopBit) ||
+                        (uartConfig.parity != glUartConfig.parity)
+                   )
+                {
+                    /* Set the uart configuration */
+                    apiRetStatus = CyU3PUartSetConfig (&uartConfig, NULL);
+                    if (apiRetStatus == CY_U3P_SUCCESS)
+                    {
+                        CyU3PMemCopy ((uint8_t *)&glUartConfig, (uint8_t *)&uartConfig,
+                                sizeof (CyU3PUartConfig_t));
+                    }
+                }
+
+                /* Initialize the UART_RX_BYTE_COUNT register to a large value. */
+                CyU3PUartRxSetBlockXfer (DFLT_UART_RX_COUNT);
+#endif
             }
         }
         /* get_line_coding */
@@ -425,8 +484,9 @@ CyFxUSBUARTAppUSBSetupCB (
             {    
                 CyU3PUsbAckSetup ();
             }   
-            else
+            else {
                 CyU3PUsbStall (0, CyTrue, CyFalse);
+            }
         }
         else
         {
@@ -571,8 +631,13 @@ CyFxUSBUARTAppInit (
         CyFxAppErrorHandler(apiRetStatus);
     }
 
+#ifndef CB_ERROR_SOLUTION_SUGGESTED
     /* Connect the USB Pins with super speed operation enabled. */
     apiRetStatus = CyU3PConnectState(CyTrue, CyTrue);
+#else
+    /* Connect the USB Pins with super speed operation enabled. */
+    apiRetStatus = CyU3PConnectState(CyTrue, CyFalse);
+#endif
     if (apiRetStatus != CY_U3P_SUCCESS)
     {        
         CyFxAppErrorHandler(apiRetStatus);
@@ -586,6 +651,14 @@ USBUARTAppThread_Entry (
 {
 #ifdef EN_UART_RCV_BLOCK_EN_DIS   
     uint32_t regValueEn = 0, regValueDs = 0;
+#endif
+#ifdef CB_ERROR_SOLUTION_SUGGESTED
+    volatile uint32_t *pUartRxCount = (volatile uint32_t *)0xE000081C;  /* UART_RX_BYTE_COUNT register. */
+    volatile uint32_t *pIoState     = (volatile uint32_t *)0xE00013D4;  /* GPIO_INVALUE1 register. */
+    uint32_t prevCount = DFLT_UART_RX_COUNT;
+    uint32_t currCount = 0;
+    uint32_t ioState, ioPollCnt;
+    uint32_t sleepDelay = UART_TASK_DELAY;
 #endif
 
     /* Initialize the USBUART Example Application */
@@ -603,6 +676,7 @@ USBUARTAppThread_Entry (
     {
         if (glIsApplnActive)
         {
+#ifndef CB_ERROR_SOLUTION_SUGGESTED
             /* While the application is active, check for data sent during the last 50 ms. If no data
                has been sent to the host, use the channel wrap-up feature to send any partial buffer to
                the USB host.
@@ -623,9 +697,54 @@ USBUARTAppThread_Entry (
             }
 
             glPktsPending = 0;
+#else /*solition suggested*/
+            currCount = *pUartRxCount;
+            if ((glPktsPending == 0) && (currCount == prevCount) && (currCount < DFLT_UART_RX_COUNT))
+            {
+                /*
+                 * State of UART_RX pin (GPIO56) can be read in bit number 24 of the GPIO_INVALUE1 register.
+                 *
+                 * At a baud rate of 115200, one bit time is about 8.7 us.
+                 * We will ensure that the signal stays high continuously for 100 us. Since the IO has to go low 
+                 * at least once per byte, this will ensure that there is no ongoing data reception.
+                 */
+                for (ioPollCnt = 0; ioPollCnt < 20; ioPollCnt++)
+                {
+                    ioState = *pIoState;
+                    if ((ioState & 0x01000000) == 0)
+                    {
+                        /* UART_RX pin sampled low indicating some activity. Skip wrap-up operation for now. */
+                        sleepDelay = 1;
+                        break;
+                    }
+
+                    CyU3PBusyWait(5);
+                }
+
+                if ((ioState & 0x01000000) != 0)
+                {
+                    /* Some data already received and UART is currently idle. Perform wrap operation. */
+                    CyU3PDmaChannelSetWrapUp (&glChHandleUarttoUsb);
+                    prevCount     = DFLT_UART_RX_COUNT;
+                    glPktsPending = 0;
+                    sleepDelay    = UART_TASK_DELAY;
+                }   
+            } else {
+                /* Sleep for UART_TASK_DELAY between iterations when UART is idle and less time when it is not. */
+                sleepDelay = (currCount == DFLT_UART_RX_COUNT) ? UART_TASK_DELAY : 1;
+
+                /* Either no data received from start or new data has been received. Skip Wrap-up operation for now. */
+                prevCount     = currCount;
+                glPktsPending = 0;
+            }
+#endif
         }
 
+#ifdef CB_ERROR_SOLUTION_SUGGESTED
+        CyU3PThreadSleep (sleepDelay);
+#else
         CyU3PThreadSleep (50);
+#endif
     }
 }
 
