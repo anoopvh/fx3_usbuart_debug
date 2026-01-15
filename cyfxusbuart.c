@@ -40,6 +40,7 @@ CyU3PDmaChannel   glChHandleDebug;              /* DMA MANUAL_OUT (Debug console
 CyBool_t          glIsApplnActive = CyFalse;    /* Whether the application is active or not. */
 CyU3PUartConfig_t glUartConfig = {0};           /* Current UART configuration. */
 volatile uint16_t glPktsPending = 0;            /* Number of packets that have been committed since last check. */
+CyU3PReturnStatus_t DmaResetReturn=0;
 
 /* CDC Class specific requests to be handled by this application. */
 #define SET_LINE_CODING        0x20
@@ -69,10 +70,72 @@ CyFxUSBUARTDmaCallback(
         CyU3PDmaCbType_t   type,     /* Callback type.             */
         CyU3PDmaCBInput_t *input)    /* Callback status.           */
 {
-    if (type == CY_U3P_DMA_CB_PROD_EVENT)
+    switch (type)
     {
-        CyU3PDmaChannelCommitBuffer (&glChHandleUarttoUsb, input->buffer_p.count, 0);
-        glPktsPending++;
+        case CY_U3P_DMA_CB_PROD_EVENT:
+            CyU3PDmaChannelCommitBuffer (&glChHandleUarttoUsb, input->buffer_p.count, 0);
+            glPktsPending++;
+            break;
+
+        case CY_U3P_DMA_CB_CONS_EVENT:
+        CyFxUsbUartDebugPrint(
+            "D[CyFxUSBUARTDmaCallback] : CY_U3P_DMA_CB_CONS_EVENT\r\n");
+        break;
+
+        case CY_U3P_DMA_CB_ABORTED:
+        CyFxUsbUartDebugPrint(
+            "[CyFxUSBUARTDmaCallback] : CY_U3P_DMA_CB_ABORTED\r\n");
+        break;
+
+        case CY_U3P_DMA_CB_ERROR:
+        CyFxUsbUartDebugPrint("[CyFxUSBUARTDmaCallback] : CY_U3P_DMA_CB_ERROR\r\n");
+
+        DmaResetReturn = CyU3PDmaChannelReset(&glChHandleUarttoUsb); /*pass handle uartusb - return print*/
+        switch(DmaResetReturn){
+
+			case CY_U3P_SUCCESS:
+				CyFxUsbUartDebugPrint(
+				            "[CyFxUSBUARTDmaCallback - Dma Reset] : CY_U3P_DMA_RESET_SUCCESS\r\n");
+				break;
+
+			case CY_U3P_ERROR_NULL_POINTER:
+				CyFxUsbUartDebugPrint(
+				            "[CyFxUSBUARTDmaCallback - Dma Reset] : CY_U3P_DMA_RESET_ERROR_NULL_POINTER\r\n");
+				break;
+			case CY_U3P_ERROR_NOT_CONFIGURED:
+				CyFxUsbUartDebugPrint(
+							"[CyFxUSBUARTDmaCallback - Dma Reset] : CY_U3P_DMA_RESET_ERROR_NOT_CONIGIURED\r\n");
+				break;
+			case CY_U3P_ERROR_MUTEX_FAILURE:
+				CyFxUsbUartDebugPrint(
+							"[CyFxUSBUARTDmaCallback - Dma Reset] : CY_U3P_DMA_RESET_ERROR_MUTEX_FAILURE\r\n");
+				break;
+			default:
+				CyFxUsbUartDebugPrint(
+							"[CyFxUSBUARTDmaCallback - Dma Reset] : CY_U3P_DMA_RESET_ERROR_UNKNOWN\r\n");
+				break;
+
+
+
+        }
+
+        CyU3PDmaChannelSetXfer (&glChHandleUarttoUsb, 0 );
+        break;
+
+        case CY_U3P_DMA_CB_PROD_SUSP:
+        CyFxUsbUartDebugPrint(
+            "[CyFxUSBUARTDmaCallback] : CY_U3P_DMA_CB_PROD_SUSP\r\n");
+        break;
+
+        case CY_U3P_DMA_CB_CONS_SUSP:
+        CyFxUsbUartDebugPrint(
+            "[CyFxUSBUARTDmaCallback] : CY_U3P_DMA_CB_CONS_SUSP\r\n");
+        break;
+
+        default:
+        	CyFxUsbUartDebugPrint(
+				"[CyFxUSBUARTDmaCallback] : CY_U3P_DMA_RESET_ERROR_UNKNOWN\r\n");
+            break;
     }
 }
 
