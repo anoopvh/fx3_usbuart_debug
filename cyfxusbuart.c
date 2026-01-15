@@ -842,7 +842,7 @@ USBUARTAppThread_Entry (
             counter++;
             if (counter == 1200)
             {
-                CyFxUsbUartDebugPrint("Dbg Port Alive");
+                CyFxUsbUartDebugPrint("Dbg Port Alive\r\n");
                 counter = 0;
             }
         }
