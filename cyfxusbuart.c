@@ -803,6 +803,14 @@ USBUARTAppThread_Entry (
             }
 
             glPktsPending = 0;
+
+            static uint16_t counter = 0;
+            counter++;
+            if (counter == 1200)
+            {
+                CyFxUsbUartDebugPrint("Dbg Port Alive | Uptime: %lu ms\r\n", CyU3PGetTime());
+                counter = 0;
+            }
         }
 
         CyU3PThreadSleep (50);
