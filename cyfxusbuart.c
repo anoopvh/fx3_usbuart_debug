@@ -72,6 +72,9 @@ CyFxUSBUARTDmaCallback(
     {
         CyU3PDmaChannelCommitBuffer (&glChHandleUarttoUsb, input->buffer_p.count, 0);
         glPktsPending++;
+    } else if (type == CY_U3P_DMA_CB_ERROR) {
+        CyU3PDmaChannelReset(&glChHandleUarttoUsb); /*pass handle uartusb - return print*/
+        CyU3PDmaChannelSetXfer (&glChHandleUarttoUsb, 0 );
     }
 }
 
@@ -166,7 +169,7 @@ CyFxUSBUARTAppStart(
     dmaCfg.size         = 32;
     dmaCfg.prodSckId    = CY_FX_EP_PRODUCER2_SOCKET;
     dmaCfg.consSckId    = CY_FX_EP_CONSUMER2_SOCKET;    
-    dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT;
+    dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_ERROR;
     dmaCfg.cb           = CyFxUSBUARTDmaCallback;
 
     apiRetStatus = CyU3PDmaChannelCreate (&glChHandleUarttoUsb,
