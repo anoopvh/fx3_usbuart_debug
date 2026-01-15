@@ -764,7 +764,10 @@ CyFxUSBUARTAppInit (
 void
 USBUARTAppThread_Entry (
         uint32_t input)
-{   
+{
+
+    CyU3PReturnStatus_t wrapUpReturn=0;
+
 #ifdef EN_UART_RCV_BLOCK_EN_DIS
     uint32_t regValueEn = 0, regValueDs = 0;
 #endif
@@ -794,7 +797,38 @@ USBUARTAppThread_Entry (
                 /* Disable UART Receiver Block */
                 UART->lpp_uart_config = regValueDs;
 #endif
-                CyU3PDmaChannelSetWrapUp (&glChHandleUarttoUsb);
+                wrapUpReturn = CyU3PDmaChannelSetWrapUp (&glChHandleUarttoUsb);
+                switch (wrapUpReturn)
+                {
+                    case CY_U3P_SUCCESS:
+                        break;
+
+                    case CY_U3P_ERROR_NULL_POINTER:
+                    CyFxUsbUartDebugPrint(
+                        "D[CyU3PDmaChannelSetWrapUp] : CY_U3P_ERROR_NULL_POINTER\r\n");
+                    break;
+                    case CY_U3P_ERROR_NOT_CONFIGURED:
+                    CyFxUsbUartDebugPrint(
+                        "D[CyU3PDmaChannelSetWrapUp] : CY_U3P_ERROR_NOT_CONFIGURED\r\n");
+                    break;
+                    case CY_U3P_ERROR_NOT_SUPPORTED:
+                    CyFxUsbUartDebugPrint(
+                        "D[CyU3PDmaChannelSetWrapUp] : CY_U3P_ERROR_NOT_SUPPORTED\r\n");
+                    break;
+                    case CY_U3P_ERROR_INVALID_SEQUENCE:
+                    CyFxUsbUartDebugPrint(
+                        "D[CyU3PDmaChannelSetWrapUp] : CY_U3P_ERROR_INVALID_SEQUENCE\r\n");
+                    break;
+                    case CY_U3P_ERROR_MUTEX_FAILURE:
+                    CyFxUsbUartDebugPrint(
+                        "D[CyU3PDmaChannelSetWrapUp] : CY_U3P_ERROR_MUTEX_FAILURE\r\n");
+                    break;
+                    default:
+                    CyFxUsbUartDebugPrint(
+                        "D[CyU3PDmaChannelSetWrapUp] : default\r\n");
+                    break;
+                }
+
 
 #ifdef EN_UART_RCV_BLOCK_EN_DIS
                 /* Enable UART Receiver Block */
@@ -808,7 +842,7 @@ USBUARTAppThread_Entry (
             counter++;
             if (counter == 1200)
             {
-                CyFxUsbUartDebugPrint("Dbg Port Alive | Uptime: %lu ms\r\n", CyU3PGetTime());
+                CyFxUsbUartDebugPrint("Dbg Port Alive");
                 counter = 0;
             }
         }
